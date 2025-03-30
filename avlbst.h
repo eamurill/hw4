@@ -255,8 +255,8 @@ void AVLTree<Key, Value>::insert(const std::pair<const Key, Value> &new_item)
 template<class Key, class Value>
 void AVLTree<Key, Value>::insertFix(AVLNode<Key, Value>* p, AVLNode<Key, Value>* n)
 {
-    if (p == nullptr || p->getParent() == nullptr) {
-        return;
+    if(p == nullptr || p->getParent() == nullptr) {
+    	return;
     }
 
     AVLNode<Key, Value>* g = p->getParent();
@@ -454,110 +454,114 @@ void AVLTree<Key, Value>::removeFix(AVLNode<Key, Value>* n, int diff)
 {
     if (n == nullptr) return;
 
-    AVLNode<Key, Value>* p = n->getParent();
-    int ndiff = 0;
-    if (p != nullptr) {
-        ndiff = (p->getLeft() == n) ? 1 : -1;
+    AVLNode<Key, Value>* parent = n->getParent();
+    int balanceChange = 0;
+
+    if (parent != nullptr) {
+        AVLNode<Key, Value>* leftChild = static_cast<AVLNode<Key, Value>*>(parent->getLeft());
+        if (leftChild == n) {
+            balanceChange = 1;
+        } else {
+            balanceChange = -1;
+        }
     }
 
-    // Case 1: Left heavy after removal (diff = -1)
-    if (n->getBalance() + diff == -2) {
-        AVLNode<Key, Value>* c = n->getLeft();
-        int cBal = c->getBalance();
+    int newBalance = n->getBalance() + diff;
 
-        if (cBal == -1) {
-            // Case 1a: Zig-zig
+    // Case 1: Left heavy
+    if (newBalance == -2) {
+        AVLNode<Key, Value>* child = n->getLeft();
+        int childBalance = child->getBalance();
+
+        if (childBalance == -1) {
             rotateRight(n);
             n->setBalance(0);
-            c->setBalance(0);
-            removeFix(p, ndiff);
+            child->setBalance(0);
+            removeFix(parent, balanceChange);
         }
-        else if (cBal == 0) {
-            // Case 1b: Zig-zig but balance = 0
+        else if (childBalance == 0) {
             rotateRight(n);
             n->setBalance(-1);
-            c->setBalance(1);
+            child->setBalance(1);
             return;
         }
-        else if (cBal == 1) {
-            // Case 1c: Zig-zag
-            AVLNode<Key, Value>* g = c->getRight();
-            int gBal = g->getBalance();
+        else if (childBalance == 1) {
+            AVLNode<Key, Value>* grandchild = child->getRight();
+            int grandchildBalance = grandchild->getBalance();
 
-            rotateLeft(c);
+            rotateLeft(child);
             rotateRight(n);
 
-            if (gBal == 1) {
+            if (grandchildBalance == 1) {
                 n->setBalance(0);
-                c->setBalance(-1);
+                child->setBalance(-1);
             }
-            else if (gBal == 0) {
+            else if (grandchildBalance == 0) {
                 n->setBalance(0);
-                c->setBalance(0);
+                child->setBalance(0);
             }
-            else if (gBal == -1) {
+            else {
                 n->setBalance(1);
-                c->setBalance(0);
+                child->setBalance(0);
             }
-            g->setBalance(0);
-            removeFix(p, ndiff);
+
+            grandchild->setBalance(0);
+            removeFix(parent, balanceChange);
         }
     }
 
-    // Case 1 mirrored: Right heavy after removal (diff = +1)
-    else if (n->getBalance() + diff == 2) {
-        AVLNode<Key, Value>* c = n->getRight();
-        int cBal = c->getBalance();
+    // Case 2: Right heavy
+    else if (newBalance == 2) {
+        AVLNode<Key, Value>* child = n->getRight();
+        int childBalance = child->getBalance();
 
-        if (cBal == 1) {
-            // Mirror Case 1a: Zig-zig
+        if (childBalance == 1) {
             rotateLeft(n);
             n->setBalance(0);
-            c->setBalance(0);
-            removeFix(p, ndiff);
+            child->setBalance(0);
+            removeFix(parent, balanceChange);
         }
-        else if (cBal == 0) {
-            // Mirror Case 1b
+        else if (childBalance == 0) {
             rotateLeft(n);
             n->setBalance(1);
-            c->setBalance(-1);
+            child->setBalance(-1);
             return;
         }
-        else if (cBal == -1) {
-            // Mirror Case 1c: Zig-zag
-            AVLNode<Key, Value>* g = c->getLeft();
-            int gBal = g->getBalance();
+        else if (childBalance == -1) {
+            AVLNode<Key, Value>* grandchild = child->getLeft();
+            int grandchildBalance = grandchild->getBalance();
 
-            rotateRight(c);
+            rotateRight(child);
             rotateLeft(n);
 
-            if (gBal == -1) {
+            if (grandchildBalance == -1) {
                 n->setBalance(0);
-                c->setBalance(1);
+                child->setBalance(1);
             }
-            else if (gBal == 0) {
+            else if (grandchildBalance == 0) {
                 n->setBalance(0);
-                c->setBalance(0);
+                child->setBalance(0);
             }
-            else if (gBal == 1) {
+            else {
                 n->setBalance(-1);
-                c->setBalance(0);
+                child->setBalance(0);
             }
-            g->setBalance(0);
-            removeFix(p, ndiff);
+
+            grandchild->setBalance(0);
+            removeFix(parent, balanceChange);
         }
     }
 
-    // Case 2: Subtree is now unbalanced but just barely (−1 or +1)
-    else if (n->getBalance() + diff == -1 || n->getBalance() + diff == 1) {
-        n->setBalance(n->getBalance() + diff);
-        return; // Done
+    // Tree still unbalanced: just update balance and return
+    else if (newBalance == -1 || newBalance == 1) {
+        n->setBalance(newBalance);
+        return;
     }
 
-    // Case 3: Node becomes perfectly balanced (0)
-    else if (n->getBalance() + diff == 0) {
+    // Balanced case: continue up
+    else {
         n->setBalance(0);
-        removeFix(p, ndiff);
+        removeFix(parent, balanceChange);
     }
 }
 
